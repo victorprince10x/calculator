@@ -1,0 +1,1183 @@
+!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Energy Cost Savings Analysis</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #070d1a;
+    --surface: #0d1830;
+    --surface2: #111f3c;
+    --border: #1e2f54;
+    --gold: #D4AF37;
+    --gold-dim: #b8962e;
+    --gold-glow: rgba(212,175,55,0.15);
+    --gold-light: #E8D5A8;
+    --amber: #f59e0b;
+    --text: #eef2ff;
+    --text-muted: #7a8cb0;
+    --text-dim: #3a4d72;
+    --accent: #e8c84a;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background:
+      radial-gradient(ellipse 80% 50% at 10% 0%, rgba(212,175,55,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(30,47,84,0.8) 0%, transparent 60%);
+    pointer-events:none; z-index:0;
+  }
+
+  body::after {
+    content:'';
+    position:fixed;
+    top:-300px; right:-200px;
+    width:800px; height:800px;
+    background:radial-gradient(circle, rgba(212,175,55,0.03) 0%, transparent 65%);
+    pointer-events:none; z-index:0;
+  }
+
+  .container { max-width:1200px; margin:0 auto; padding:40px 24px; position:relative; z-index:1; }
+
+  /* HEADER */
+  .header {
+    border-bottom:1px solid var(--border);
+    padding-bottom:32px; margin-bottom:40px;
+    display:flex; justify-content:space-between; align-items:flex-end;
+    flex-wrap:wrap; gap:20px;
+  }
+
+  .header-label {
+    font-family:'DM Mono',monospace; font-size:11px; color:var(--gold);
+    letter-spacing:0.15em; text-transform:uppercase; margin-bottom:8px;
+    display:flex; align-items:center; gap:8px;
+  }
+
+  .header-label::before {
+    content:''; width:6px; height:6px; background:var(--gold);
+    border-radius:50%; box-shadow:0 0 8px var(--gold); animation:pulse 2s infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(38px,5vw,64px); letter-spacing:0.04em; line-height:0.95; }
+  h1 span { color:var(--gold); }
+
+  .prospect-name-wrap { text-align:right; }
+  .prospect-name-wrap label {
+    display:block; font-family:'DM Mono',monospace; font-size:10px;
+    letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:6px;
+  }
+  .prospect-name-input {
+    background:var(--surface); border:1px solid var(--border); color:var(--text);
+    font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:0.06em;
+    padding:8px 16px; border-radius:2px; outline:none; width:300px; text-align:right; transition:border-color 0.2s;
+  }
+  .prospect-name-input:focus { border-color:var(--gold); box-shadow:0 0 0 3px var(--gold-glow); }
+  .prospect-name-input::placeholder { color:var(--text-dim); }
+
+  /* RATES */
+  .config-bar {
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    gap:16px; margin-bottom:32px; padding:24px;
+    background:var(--surface); border:1px solid var(--border); border-radius:4px;
+  }
+  .config-field label {
+    display:block; font-family:'DM Mono',monospace; font-size:10px;
+    letter-spacing:0.12em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px;
+  }
+  .config-field input {
+    width:100%; background:var(--bg); border:1px solid var(--border); color:var(--text);
+    font-family:'DM Mono',monospace; font-size:20px; font-weight:500;
+    padding:10px 14px; border-radius:2px; outline:none; transition:border-color 0.2s;
+  }
+  .config-field input:focus { border-color:var(--gold); box-shadow:0 0 0 3px var(--gold-glow); }
+  .derived-val { font-family:'DM Mono',monospace; font-size:20px; color:var(--gold); font-weight:500; padding:10px 0; }
+
+  /* ESIID SECTION */
+  .esiid-section {
+    background:var(--surface); border:1px solid var(--border); border-radius:4px;
+    padding:24px; margin-bottom:32px;
+  }
+
+  .esiid-section-header {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:20px; flex-wrap:wrap; gap:12px;
+  }
+
+  .esiid-section-title { font-family:'Bebas Neue',sans-serif; font-size:20px; letter-spacing:0.06em; }
+  .esiid-section-sub { font-size:12px; color:var(--text-muted); margin-top:2px; }
+
+  /* ESIID TABS */
+  .esiid-tabs-row {
+    display:flex; align-items:center; gap:8px; margin-bottom:20px; flex-wrap:wrap;
+  }
+
+  .esiid-tab {
+    display:flex; align-items:center; gap:8px;
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:3px; padding:0; overflow:hidden; cursor:pointer;
+    transition:border-color 0.2s; position:relative;
+  }
+
+  .esiid-tab.active { border-color:var(--gold); }
+
+  .esiid-tab.active::after {
+    content:''; position:absolute; bottom:0; left:0; right:0; height:2px;
+    background:var(--gold); box-shadow:0 0 6px var(--gold);
+  }
+
+  .esiid-tab-name {
+    font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--text-muted); padding:8px 14px;
+    transition:color 0.2s; white-space:nowrap;
+  }
+
+  .esiid-tab.active .esiid-tab-name { color:var(--gold); }
+  .esiid-tab:hover .esiid-tab-name { color:var(--text); }
+
+  .esiid-tab-total {
+    font-family:'DM Mono',monospace; font-size:10px; color:var(--text-dim);
+    padding:8px 10px 8px 0; white-space:nowrap;
+  }
+
+  .esiid-tab.active .esiid-tab-total { color:var(--text-muted); }
+
+  .tab-remove {
+    background:transparent; border:none; color:var(--text-dim);
+    cursor:pointer; padding:8px 10px; font-size:13px; transition:color 0.2s; line-height:1;
+  }
+  .tab-remove:hover { color:#ef4444; }
+
+  .esiid-tab.dragging { opacity:0.4; border-color:var(--gold) !important; }
+  .esiid-tab.drag-over { border-color:var(--accent) !important; box-shadow:0 0 12px rgba(212,175,55,0.35); }
+
+  .add-esiid-tab-btn {
+    font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.08em;
+    text-transform:uppercase; padding:8px 14px; border-radius:3px; cursor:pointer;
+    border:1px dashed var(--border); background:transparent; color:var(--text-dim);
+    transition:all 0.2s; white-space:nowrap;
+  }
+  .add-esiid-tab-btn:hover { border-color:var(--gold-dim); color:var(--gold); }
+
+  /* ESIID PANEL */
+  .esiid-panel { display:none; }
+  .esiid-panel.active { display:block; }
+
+  .esiid-meta {
+    display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px;
+  }
+
+  .esiid-meta-field { display:flex; flex-direction:column; gap:4px; }
+  .esiid-meta-field label {
+    font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:0.1em; color:var(--text-muted);
+  }
+  .esiid-meta-field input {
+    background:var(--bg); border:1px solid var(--border); color:var(--text);
+    font-family:'DM Mono',monospace; font-size:13px; padding:8px 12px;
+    border-radius:2px; outline:none; transition:border-color 0.2s;
+  }
+  .esiid-meta-field input:focus { border-color:var(--gold); }
+  .esiid-meta-field input::placeholder { color:var(--text-dim); }
+
+  /* USAGE GRID */
+  .usage-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; }
+  .usage-field { display:flex; flex-direction:column; gap:5px; }
+  .usage-field label {
+    font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:0.1em; color:var(--text-muted);
+  }
+  .usage-field input {
+    background:var(--bg); border:1px solid var(--border); color:var(--text);
+    font-family:'DM Mono',monospace; font-size:14px; padding:9px 12px;
+    border-radius:2px; outline:none; width:100%; text-align:right; transition:border-color 0.2s;
+  }
+  .usage-field input:focus { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold-glow); }
+
+  .esiid-subtotal {
+    display:flex; justify-content:flex-end; align-items:center; gap:12px;
+    margin-top:14px; padding-top:14px; border-top:1px solid var(--border);
+  }
+  .esiid-subtotal-label { font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); }
+  .esiid-subtotal-val { font-family:'Bebas Neue',sans-serif; font-size:24px; color:var(--gold); letter-spacing:0.04em; }
+  .esiid-subtotal-unit { font-family:'DM Mono',monospace; font-size:10px; color:var(--text-muted); }
+
+  /* COMBINED BANNER */
+  .combined-banner {
+    background:linear-gradient(135deg, var(--surface2), var(--surface));
+    border:1px solid var(--gold);
+    border-radius:4px; padding:20px 28px; margin-bottom:32px;
+    display:flex; align-items:center; gap:24px; flex-wrap:wrap;
+    box-shadow:0 0 40px rgba(212,175,55,0.1);
+    position:relative; overflow:hidden;
+  }
+  .combined-banner::after {
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(circle at top right, var(--gold-glow), transparent 60%);
+    pointer-events:none;
+  }
+  .combined-banner-label {
+    font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase;
+    letter-spacing:0.14em; color:var(--text-muted); margin-bottom:4px;
+  }
+  .combined-banner-val {
+    font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--gold);
+    letter-spacing:0.04em; line-height:1;
+  }
+  .combined-banner-item { display:flex; flex-direction:column; }
+  .combined-banner-divider { width:1px; height:40px; background:var(--border); }
+
+  /* KPI */
+  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:16px; margin-bottom:40px; }
+  .kpi-card {
+    background:var(--surface); border:1px solid var(--border); border-radius:4px;
+    padding:24px; position:relative; overflow:hidden; transition:border-color 0.3s;
+  }
+  .kpi-card:hover { border-color:rgba(212,175,55,0.4); }
+  .kpi-card.highlight {
+    border-color:var(--gold);
+    background:linear-gradient(135deg, var(--surface2), var(--surface));
+  }
+  .kpi-card.highlight::after {
+    content:''; position:absolute; inset:0;
+    background:radial-gradient(circle at top right, var(--gold-glow), transparent 60%);
+    pointer-events:none;
+  }
+  .kpi-label { font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.12em; color:var(--text-muted); margin-bottom:10px; }
+  .kpi-value { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:0.04em; line-height:1; color:var(--text); }
+  .kpi-card.highlight .kpi-value { color:var(--gold); }
+  .kpi-sub { font-size:12px; color:var(--text-muted); margin-top:6px; font-weight:300; }
+
+  /* PASTE BOX */
+  .paste-box-wrap {
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .paste-box-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .paste-box {
+    width: 260px;
+    flex: none;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 7px 12px;
+    resize: none;
+    outline: none;
+    height: 34px;
+    line-height: 1.4;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .paste-box:focus { border-color: var(--gold); }
+  .paste-box::placeholder { color: var(--text-dim); font-size: 11px; }
+
+  .paste-status {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .paste-status.ok  { color: var(--gold); }
+  .paste-status.err { color: #ef4444; }
+
+  /* SECTION HEADERS */
+  .section-header { display:flex; align-items:center; gap:12px; margin-bottom:20px; }
+  .section-title { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:0.06em; white-space:nowrap; }
+  .section-line { flex:1; height:1px; background:var(--border); }
+
+  /* TABLES */
+  .table-wrap { background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:40px; }
+  table { width:100%; border-collapse:collapse; }
+  thead th {
+    font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.1em;
+    color:var(--text-muted); padding:14px 20px; text-align:right;
+    border-bottom:1px solid var(--border); background:var(--surface2);
+  }
+  thead th:first-child { text-align:left; }
+  tbody tr { border-bottom:1px solid var(--border); transition:background 0.15s; }
+  tbody tr:last-child { border-bottom:none; }
+  tbody tr:hover { background:var(--surface2); }
+  tbody td { padding:14px 20px; font-family:'DM Mono',monospace; font-size:13px; text-align:right; color:var(--text); }
+  tbody td:first-child { text-align:left; font-family:'DM Sans',sans-serif; font-size:14px; color:var(--text-muted); }
+  .savings-cell { color:var(--gold) !important; font-weight:500; }
+  .bar-cell { width:100px; padding:14px 20px !important; }
+  .bar-track { background:var(--border); height:4px; border-radius:2px; overflow:hidden; }
+  .bar-fill { height:100%; background:linear-gradient(90deg, var(--gold-dim), var(--gold)); border-radius:2px; box-shadow:0 0 6px rgba(212,175,55,0.5); }
+  tfoot td {
+    padding:16px 20px; font-family:'DM Mono',monospace; font-size:13px; text-align:right;
+    border-top:1px solid var(--border); background:var(--surface2); font-weight:500;
+    color: var(--text) !important;
+  }
+  tfoot td:first-child { text-align:left; font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:0.08em; color: var(--text) !important; }
+  tfoot .savings-cell { font-size:15px; color:var(--gold) !important; }
+
+  /* EMPHASIS BOX */
+  .emphasis-wrap {
+    border:1px solid var(--gold); border-radius:6px; padding:24px; margin-bottom:40px;
+    background:linear-gradient(135deg, rgba(212,175,55,0.04), transparent);
+    box-shadow:0 0 40px rgba(212,175,55,0.08), inset 0 0 0 1px rgba(212,175,55,0.08);
+    position:relative;
+  }
+  .emphasis-wrap::before {
+    content:'★ KEY SAVINGS BREAKDOWN'; position:absolute; top:-11px; left:24px;
+    background:var(--bg); padding:0 10px; font-family:'DM Mono',monospace;
+    font-size:10px; letter-spacing:0.14em; color:var(--gold);
+  }
+  .emphasis-wrap .table-wrap { margin-bottom:0; border-color:var(--border); }
+
+  /* CHART */
+  .chart-wrap { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:28px; margin-bottom:40px; }
+  .chart-bars { display:flex; align-items:flex-end; gap:8px; height:200px; padding-bottom:24px; border-bottom:1px solid var(--border); }
+  .chart-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
+  .chart-amount { font-family:'DM Mono',monospace; font-size:9px; color:var(--gold); text-align:center; margin-bottom:4px; white-space:nowrap; }
+  .chart-bar { width:100%; background:linear-gradient(to top, var(--gold-dim), var(--gold)); border-radius:3px 3px 0 0; min-height:4px; opacity:0.85; transition:all 0.2s; box-shadow: 0 0 8px rgba(212,175,55,0.25); }
+  .chart-bar:hover { opacity:1; box-shadow: 0 0 18px rgba(212,175,55,0.55); transform: scaleX(1.05); }
+  .chart-month { font-family:'DM Mono',monospace; font-size:9px; color:var(--text-dim); text-transform:uppercase; margin-top:8px; }
+
+  /* SHIMMER — gold version */
+  .shimmer-text {
+    background:linear-gradient(90deg, var(--text-muted) 0%, var(--text-muted) 30%, #ffffff 48%, var(--gold) 55%, var(--text-muted) 65%, var(--text-muted) 100%);
+    background-size:200% auto; -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    background-clip:text; animation:shimmer 3s linear infinite;
+  }
+  @keyframes shimmer { 0%{background-position:200% center} 100%{background-position:-200% center} }
+
+  /* MULTIYEAR */
+  .multiyear-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:16px; }
+  .year-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:20px; text-align:center; transition:all 0.2s; position:relative; overflow:hidden; }
+  .year-card:hover { border-color:rgba(212,175,55,0.4); }
+  .year-card.active { border-color:var(--gold); background:var(--surface2); }
+  .year-card.active::before { content:''; position:absolute; bottom:0; left:0; right:0; height:2px; background:var(--gold); box-shadow:0 0 8px var(--gold); }
+  .year-card-label { font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:0.1em; color:var(--text-muted); margin-bottom:8px; }
+  .year-card-savings { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--gold); letter-spacing:0.04em; line-height:1; }
+  .year-card-pct { font-family:'DM Mono',monospace; font-size:11px; color:var(--text-muted); margin-top:4px; }
+
+  /* BUTTONS */
+  .btn-group { display:flex; gap:8px; }
+  .btn {
+    font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+    padding:8px 16px; border-radius:2px; cursor:pointer; border:1px solid var(--border);
+    background:var(--surface2); color:var(--text-muted); transition:all 0.2s;
+  }
+  .btn:hover { border-color:var(--gold-dim); color:var(--text); }
+  .btn-primary { background:var(--gold); color:var(--bg); border-color:var(--gold); font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:0.08em; font-weight:700; }
+  .btn-primary:hover { background:var(--accent); box-shadow:0 0 20px var(--gold-glow); }
+  .btn-download { background:transparent; color:var(--gold); border-color:var(--gold); font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:0.08em; }
+  .btn-download:hover { background:var(--gold-glow); color:var(--accent); border-color:var(--accent); }
+
+  /* FOOTER */
+  .footer { border-top:1px solid var(--border); padding-top:24px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+  .footer-note { font-size:11px; color:var(--text-dim); font-family:'DM Mono',monospace; }
+
+  /* PRINT */
+  .print-header-bar { display:none; }
+  .print-rates-bar { display:none; }
+  .print-rate-reduction { display:none; }
+
+  @media print {
+    * { -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+    body { background:#070d1a !important; color:#eef2ff !important; }
+    body::before { display:none; }
+    .container { padding:20px !important; max-width:100% !important; }
+    .esiid-section, .footer .btn-group, .config-bar { display:none !important; }
+    .kpi-grid { display:none !important; }
+    .print-rate-reduction { display:flex !important; flex-direction:column; }
+    .chart-wrap { page-break-after:always !important; }
+    #chartSectionHeader { page-break-before:always !important; }
+    .emphasis-wrap { page-break-after:always !important; page-break-inside:avoid !important; }
+    .multiyear-grid { page-break-inside:avoid !important; }
+    #monthFoot { display:none !important; }
+    .section-header { page-break-after:avoid !important; }
+    .print-header-bar {
+      display:flex !important; justify-content:space-between; align-items:center;
+      border-bottom:2px solid #D4AF37; padding-bottom:12px; margin-bottom:16px;
+    }
+    .print-rates-bar {
+      display:block !important;
+      background:#0d1830; border:1px solid #1e2f54; border-radius:4px;
+      padding:16px 24px; margin-bottom:20px; text-align:center;
+    }
+    .combined-banner { background:#0d1830 !important; border-color:#D4AF37 !important; display:flex !important; }
+  }
+
+  @media (max-width:700px) {
+    .usage-grid { grid-template-columns:repeat(2,1fr); }
+    .bar-cell { display:none; }
+    .prospect-name-input { width:100%; text-align:left; }
+    .prospect-name-wrap { text-align:left; }
+    .esiid-meta { grid-template-columns:1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Print header -->
+  <div class="print-header-bar" id="printHeaderBar">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.06em;color:#D4AF37">ENERGY COST SAVINGS ANALYSIS</div>
+    <div style="text-align:right">
+      <div style="font-size:16px;font-family:'Bebas Neue',sans-serif;letter-spacing:0.04em;color:#eef2ff" id="printName"></div>
+      <div style="font-size:11px;color:#7a8cb0;font-family:monospace" id="printDate"></div>
+    </div>
+  </div>
+
+  <!-- Print rates bar (print only) -->
+  <div class="print-rates-bar" id="printRatesBar">
+    <div style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:#7a8cb0;margin-bottom:6px">CURRENT RATE ($/KWH)</div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#D4AF37;letter-spacing:0.06em;margin-bottom:14px" id="printCurrentRate">—</div>
+    <div style="display:flex;justify-content:center;gap:32px;flex-wrap:wrap">
+      <div style="text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#7a8cb0;margin-bottom:4px">12-MONTH RATE ($/KWH)</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#eef2ff;letter-spacing:0.04em" id="printRate12">—</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#7a8cb0;margin-bottom:4px">24-MONTH RATE ($/KWH)</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#eef2ff;letter-spacing:0.04em" id="printRate24">—</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#7a8cb0;margin-bottom:4px">36-MONTH RATE ($/KWH)</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#eef2ff;letter-spacing:0.04em" id="printRate36">—</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#7a8cb0;margin-bottom:4px">48-MONTH RATE ($/KWH)</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#eef2ff;letter-spacing:0.04em" id="printRate48">—</div>
+      </div>
+      <div style="text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#7a8cb0;margin-bottom:4px">60-MONTH RATE ($/KWH)</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;color:#eef2ff;letter-spacing:0.04em" id="printRate60">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="header-label">Energy Rate Analysis · Commercial Account</div>
+      <h1>COST SAVINGS<br><span>ANALYSIS</span></h1>
+    </div>
+    <div class="prospect-name-wrap">
+      <label>Account Name</label>
+      <input type="text" class="prospect-name-input" id="prospectName" placeholder="Enter Business Name" maxlength="40">
+    </div>
+  </div>
+
+  <!-- Rates -->
+  <div class="config-bar" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+    <div class="config-field">
+      <label>Current Rate ($/kWh)</label>
+      <input type="number" id="currentRate" value="0.087" step="0.0001" min="0">
+    </div>
+    <div class="config-field">
+      <label>12-Month Rate ($/kWh)</label>
+      <input type="number" id="rate12" value="0.074" step="0.0001" min="0">
+    </div>
+    <div class="config-field">
+      <label>24-Month Rate ($/kWh)</label>
+      <input type="number" id="rate24" value="0.074" step="0.0001" min="0">
+    </div>
+    <div class="config-field">
+      <label>36-Month Rate ($/kWh)</label>
+      <input type="number" id="rate36" value="0.074" step="0.0001" min="0">
+    </div>
+    <div class="config-field">
+      <label>48-Month Rate ($/kWh)</label>
+      <input type="number" id="rate48" value="0.074" step="0.0001" min="0">
+    </div>
+    <div class="config-field">
+      <label>60-Month Rate ($/kWh)</label>
+      <input type="number" id="rate60" value="0.074" step="0.0001" min="0">
+    </div>
+  </div>
+
+  <!-- ESIID Section -->
+  <div class="esiid-section">
+    <div class="esiid-section-header">
+      <div>
+        <div class="esiid-section-title">Monthly Usage (kWh)</div>
+        <div class="esiid-section-sub">Enter 12 months of usage — add a tab for each ESIID</div>
+      </div>
+      <div class="btn-group">
+        <button class="btn" onclick="clearCurrentEsiid()">Clear</button>
+        <button class="btn" onclick="clearAll()">Clear All</button>
+        <button class="btn" onclick="saveSession()">💾 Save</button>
+        <button class="btn" onclick="loadSession()" id="loadBtn" style="display:none">⬆ Load Saved</button>
+      </div>
+    </div>
+
+    <div class="esiid-tabs-row" id="esiidTabsRow">
+      <button class="add-esiid-tab-btn" onclick="addEsiid()">+ Add ESIID</button>
+    </div>
+
+    <div id="esiidPanels"></div>
+  </div>
+
+  <!-- Combined banner -->
+  <div class="combined-banner" id="combinedBanner" style="display:none">
+    <div class="combined-banner-item">
+      <div class="combined-banner-label">Combined ESIIDs</div>
+      <div class="combined-banner-val" id="combinedCount">0</div>
+    </div>
+    <div class="combined-banner-divider"></div>
+    <div class="combined-banner-item">
+      <div class="combined-banner-label">Total Annual kWh</div>
+      <div class="combined-banner-val" id="combinedKwh">0</div>
+    </div>
+    <div class="combined-banner-divider"></div>
+    <div class="combined-banner-item">
+      <div class="combined-banner-label">Combined Annual Savings</div>
+      <div class="combined-banner-val" id="combinedSavings">$0</div>
+    </div>
+    <div class="combined-banner-divider"></div>
+    <div class="combined-banner-item">
+      <div class="combined-banner-label">5-Year Combined Savings</div>
+      <div class="combined-banner-val" id="combined5yr">$0</div>
+    </div>
+    <div class="combined-banner-divider print-rate-reduction"></div>
+    <div class="combined-banner-item print-rate-reduction">
+      <div class="combined-banner-label">Rate Reduction (12-Mo)</div>
+      <div class="combined-banner-val" id="printRateReductionVal">—</div>
+      <div style="font-size:11px;color:#7a8cb0;margin-top:2px" id="printRateReductionSub">—</div>
+    </div>
+  </div>
+
+  <style>
+    @media print {
+      .combined-banner {
+        flex-wrap: nowrap !important;
+        gap: 0 !important;
+        padding: 20px 12px !important;
+        justify-content: space-between !important;
+      }
+      .combined-banner-item {
+        flex: 1 !important;
+        min-width: 0 !important;
+        padding: 0 10px !important;
+      }
+      .combined-banner-label {
+        font-size: 9px !important;
+        letter-spacing: 0.07em !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+      }
+      .combined-banner-val {
+        font-size: 26px !important;
+        white-space: nowrap !important;
+      }
+      .combined-banner-divider {
+        width: 1px !important;
+        height: 40px !important;
+        flex-shrink: 0 !important;
+        align-self: center !important;
+      }
+      #printRateReductionSub {
+        font-size: 10px !important;
+        white-space: nowrap !important;
+      }
+    }
+  </style>
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- Chart -->
+  <div class="section-header" id="chartSectionHeader">
+    <div class="section-title">Monthly Savings Profile</div>
+    <div class="section-line"></div>
+  </div>
+  <div class="chart-wrap">
+    <div class="chart-bars" id="chartBars"></div>
+  </div>
+
+  <!-- Monthly Table -->
+  <div class="section-header">
+    <div class="section-title">Monthly Breakdown — Year 1</div>
+    <div class="section-line"></div>
+  </div>
+  <div class="emphasis-wrap">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Month</th>
+            <th>Usage (kWh)</th>
+            <th>Current Cost</th>
+            <th>New Cost</th>
+            <th><span class="shimmer-text">Monthly Savings</span></th>
+            <th>Savings %</th>
+            <th class="bar-cell"></th>
+          </tr>
+        </thead>
+        <tbody id="monthTable"></tbody>
+        <tfoot id="monthFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- Multi-Year -->
+  <div class="section-header">
+    <div class="section-title">Multi-Year Savings</div>
+    <div class="section-line"></div>
+  </div>
+  <div class="multiyear-grid" id="multiyearGrid"></div>
+  <div class="table-wrap" style="margin-bottom:40px">
+    <table>
+      <thead>
+        <tr>
+          <th>Period</th><th>Months</th>
+          <th>Total Current Cost</th><th>Total New Cost</th>
+          <th>Total Savings</th><th>Savings %</th>
+        </tr>
+      </thead>
+      <tbody id="multiyearTable"></tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-note">Generated by <span style="color:var(--text-muted)">Jay Rich</span> &nbsp;·&nbsp; <span id="genDate"></span></div>
+    <div class="btn-group">
+      <button class="btn btn-primary" onclick="calculate()">Recalculate</button>
+      <button class="btn btn-download" onclick="downloadPDF()">⬇ Download PDF</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const MONTHS       = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS_SHORT = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+let esiids = [];
+let activeTab = 0;
+
+function createEsiid(name='', esiidNum='', address='') {
+  return { id: Date.now(), name, esiidNum, address, usage: new Array(12).fill(0) };
+}
+
+function addEsiid() {
+  const idx = esiids.length;
+  esiids.push(createEsiid(`ESIID ${idx + 1}`));
+  activeTab = idx;
+  renderAll();
+  calculate();
+}
+
+function removeEsiid(idx) {
+  if (esiids.length <= 1) return;
+  esiids.splice(idx, 1);
+  if (activeTab >= esiids.length) activeTab = esiids.length - 1;
+  renderAll();
+  calculate();
+}
+
+function switchTab(idx) {
+  activeTab = idx;
+  renderTabs();
+  renderPanels();
+}
+
+function saveUsageFromDOM() {
+  esiids.forEach((e, idx) => {
+    MONTHS.forEach((_, m) => {
+      const el = document.getElementById(`u_${idx}_${m}`);
+      if (el) e.usage[m] = parseFloat(el.value) || 0;
+    });
+  });
+}
+
+let dragSrcIdx = null;
+
+function renderTabs() {
+  const row = document.getElementById('esiidTabsRow');
+  const addBtn = row.querySelector('.add-esiid-tab-btn');
+  Array.from(row.querySelectorAll('.esiid-tab')).forEach(t => t.remove());
+
+  esiids.forEach((e, idx) => {
+    const total = e.usage.reduce((a,b) => a+b, 0);
+    const tab = document.createElement('div');
+    tab.className = 'esiid-tab' + (idx === activeTab ? ' active' : '');
+    tab.draggable = true;
+    tab.dataset.idx = idx;
+    tab.innerHTML = `
+      <span class="esiid-tab-name" onclick="switchTab(${idx})">${e.name || 'ESIID ' + (idx+1)}</span>
+      <span class="esiid-tab-total" onclick="switchTab(${idx})">${total > 0 ? fmtNum(total)+' kWh' : 'empty'}</span>
+      ${esiids.length > 1 ? `<button class="tab-remove" onclick="removeEsiid(${idx})" title="Remove">✕</button>` : ''}
+    `;
+    tab.addEventListener('dragstart', (e) => {
+      dragSrcIdx = idx;
+      setTimeout(() => tab.classList.add('dragging'), 0);
+    });
+    tab.addEventListener('dragend', () => {
+      tab.classList.remove('dragging');
+      document.querySelectorAll('.esiid-tab').forEach(t => t.classList.remove('drag-over'));
+    });
+    tab.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      document.querySelectorAll('.esiid-tab').forEach(t => t.classList.remove('drag-over'));
+      tab.classList.add('drag-over');
+    });
+    tab.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const destIdx = parseInt(tab.dataset.idx);
+      if (dragSrcIdx === null || dragSrcIdx === destIdx) return;
+      const moved = esiids.splice(dragSrcIdx, 1)[0];
+      esiids.splice(destIdx, 0, moved);
+      activeTab = destIdx;
+      dragSrcIdx = null;
+      renderAll();
+      calculate();
+    });
+    row.insertBefore(tab, addBtn);
+  });
+}
+
+function renderPanels() {
+  const container = document.getElementById('esiidPanels');
+  container.innerHTML = '';
+  esiids.forEach((e, idx) => {
+    const panel = document.createElement('div');
+    panel.className = 'esiid-panel' + (idx === activeTab ? ' active' : '');
+    panel.id = `panel_${idx}`;
+
+    let usageInputs = '';
+    MONTHS.forEach((m, mi) => {
+      usageInputs += `
+        <div class="usage-field">
+          <label>${m}</label>
+          <input type="number" id="u_${idx}_${mi}" value="${e.usage[mi] || ''}" placeholder="0" min="0" step="1" oninput="onUsageInput(${idx},${mi},this.value)">
+        </div>`;
+    });
+
+    const total = e.usage.reduce((a,b) => a+b, 0);
+
+    panel.innerHTML = `
+      <div class="esiid-meta">
+        <div class="esiid-meta-field">
+          <label>ESIID Number</label>
+          <input type="text" id="esiidNum_${idx}" value="${e.esiidNum}" placeholder="Enter ESIID Number" oninput="onEsiidNumInput(${idx}, this.value)" onpaste="onEsiidNumPaste(${idx}, event)">
+        </div>
+        <div class="esiid-meta-field">
+          <label>Location / Label (optional)</label>
+          <input type="text" id="esiidName_${idx}" value="" placeholder="e.g. Main Building, Warehouse..." oninput="onEsiidLabelInput(${idx}, this.value)">
+        </div>
+      </div>
+      <div class="paste-box-wrap">
+        <span class="paste-box-label" title="Paste monthly values from a spreadsheet — Jan through Dec">kWh</span>
+        <textarea id="paste_${idx}" class="paste-box" rows="1" onpaste="onPasteUsage(event,${idx})" oninput="onPasteUsage(event,${idx})" placeholder=""></textarea>
+        <span class="paste-status" id="pasteStatus_${idx}"></span>
+      </div>
+      <div class="usage-grid">${usageInputs}</div>
+      <div class="esiid-subtotal">
+        <span class="esiid-subtotal-label">This ESIID Annual Total</span>
+        <span class="esiid-subtotal-val" id="sub_${idx}">${fmtNum(total)}</span>
+        <span class="esiid-subtotal-unit">kWh</span>
+      </div>`;
+    container.appendChild(panel);
+  });
+}
+
+function renderAll() {
+  renderTabs();
+  renderPanels();
+}
+
+function onUsageInput(idx, month, val) {
+  esiids[idx].usage[month] = parseFloat(val) || 0;
+  const total = esiids[idx].usage.reduce((a,b) => a+b, 0);
+  const subEl = document.getElementById(`sub_${idx}`);
+  if (subEl) subEl.textContent = fmtNum(total);
+  const tabs = document.querySelectorAll('.esiid-tab');
+  if (tabs[idx]) {
+    const totEl = tabs[idx].querySelector('.esiid-tab-total');
+    if (totEl) totEl.textContent = total > 0 ? fmtNum(total)+' kWh' : 'empty';
+  }
+  calculate();
+}
+
+function onEsiidNumInput(idx, val) {
+  esiids[idx].esiidNum = val;
+  if (!esiids[idx].customLabel) {
+    esiids[idx].name = val || ('ESIID ' + (idx + 1));
+  }
+  renderTabs();
+}
+
+function onEsiidNumPaste(idx, e) {
+  const text = e.clipboardData && e.clipboardData.getData('text') || '';
+  const entries = text
+    .split(/[\n\r\s,;]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
+  if (entries.length <= 1) return;
+  e.preventDefault();
+
+  esiids[idx].esiidNum = entries[0];
+  if (!esiids[idx].customLabel) esiids[idx].name = entries[0];
+
+  entries.slice(1).forEach((num) => {
+    const newE = createEsiid(num, num);
+    newE.esiidNum = num;
+    newE.name = num;
+    esiids.push(newE);
+  });
+
+  activeTab = idx;
+  renderAll();
+  calculate();
+
+  const firstEl = document.getElementById('esiidNum_' + idx);
+  if (firstEl) firstEl.value = entries[0];
+  entries.slice(1).forEach((num, i) => {
+    const el = document.getElementById('esiidNum_' + (idx + 1 + i));
+    if (el) el.value = num;
+  });
+}
+
+function onEsiidLabelInput(idx, val) {
+  esiids[idx].customLabel = val.length > 0;
+  esiids[idx].name = val || esiids[idx].esiidNum || ('ESIID ' + (idx + 1));
+  renderTabs();
+}
+
+function clearCurrentEsiid() {
+  MONTHS.forEach((_, m) => {
+    esiids[activeTab].usage[m] = 0;
+    const el = document.getElementById(`u_${activeTab}_${m}`);
+    if (el) el.value = '';
+  });
+  const subEl = document.getElementById(`sub_${activeTab}`);
+  if (subEl) subEl.textContent = '0';
+  calculate();
+}
+
+function onPasteUsage(e, idx) {
+  setTimeout(() => {
+    const raw = document.getElementById(`paste_${idx}`).value;
+    const status = document.getElementById(`pasteStatus_${idx}`);
+
+    const nums = raw
+      .split(/[\n\r\t,; ]+/)
+      .map(s => parseFloat(s.replace(/,/g, '')))
+      .filter(n => !isNaN(n) && n >= 0);
+
+    if (nums.length === 0) {
+      status.textContent = '';
+      status.className = 'paste-status';
+      return;
+    }
+
+    if (nums.length < 12) {
+      status.textContent = `⚠ Found ${nums.length} value${nums.length>1?'s':''} — need 12 (January through December)`;
+      status.className = 'paste-status err';
+      return;
+    }
+
+    if (nums.length > 12) {
+      status.textContent = `⚠ Found ${nums.length} values — using first 12`;
+      status.className = 'paste-status err';
+    }
+
+    const toUse = nums.slice(0, 12);
+    toUse.forEach((val, m) => {
+      esiids[idx].usage[m] = val;
+      const el = document.getElementById(`u_${idx}_${m}`);
+      if (el) el.value = val > 0 ? val : '';
+    });
+
+    const total = toUse.reduce((a,b) => a+b, 0);
+    const subEl = document.getElementById(`sub_${idx}`);
+    if (subEl) subEl.textContent = fmtNum(total);
+
+    if (nums.length === 12) {
+      status.textContent = `✓ All 12 months loaded · ${fmtNum(total)} kWh total`;
+      status.className = 'paste-status ok';
+    }
+
+    renderTabs();
+    calculate();
+  }, 0);
+}
+
+function fmt(n, dec=2) { return '$' + n.toFixed(dec).replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function fmtNum(n) { return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); }
+function fmtPct(n) { return n.toFixed(1) + '%'; }
+
+function calculate() {
+  const cr = parseFloat(document.getElementById('currentRate').value) || 0;
+  const termRates = {
+    12: parseFloat(document.getElementById('rate12').value) || 0,
+    24: parseFloat(document.getElementById('rate24').value) || 0,
+    36: parseFloat(document.getElementById('rate36').value) || 0,
+    48: parseFloat(document.getElementById('rate48').value) || 0,
+    60: parseFloat(document.getElementById('rate60').value) || 0,
+  };
+
+  const nr   = termRates[12];
+  const diff = cr - nr;
+
+  const combined = new Array(12).fill(0);
+  esiids.forEach((e) => {
+    e.usage.forEach((u, m) => { combined[m] += u; });
+  });
+
+  const annualUsage = combined.reduce((a,b) => a+b, 0);
+  const maxUsage    = Math.max(...combined, 1);
+
+  let totalCurrent=0, totalNew=0, totalSavings=0;
+  const monthlySavings=[];
+  const tbody = document.getElementById('monthTable');
+  tbody.innerHTML = '';
+
+  combined.forEach((u, i) => {
+    const cur = u * cr, nw = u * nr, sav = u * diff;
+    totalCurrent += cur; totalNew += nw; totalSavings += sav;
+    monthlySavings.push(sav);
+    const pct = cur > 0 ? (sav/cur)*100 : 0;
+    const barPct = (u/maxUsage)*100;
+    tbody.innerHTML += `
+      <tr>
+        <td>${MONTHS[i]}</td>
+        <td>${u>0?fmtNum(u):'—'}</td>
+        <td>${u>0?fmt(cur):'—'}</td>
+        <td>${u>0?fmt(nw):'—'}</td>
+        <td class="savings-cell">${u>0?fmt(sav):'—'}</td>
+        <td>${u>0?fmtPct(pct):'—'}</td>
+        <td class="bar-cell"><div class="bar-track"><div class="bar-fill" style="width:${barPct}%"></div></div></td>
+      </tr>`;
+  });
+
+  const overallPct = totalCurrent > 0 ? (totalSavings/totalCurrent)*100 : 0;
+  document.getElementById('monthFoot').innerHTML = `
+    <tr>
+      <td>ANNUAL TOTAL</td><td>${fmtNum(annualUsage)}</td>
+      <td>${fmt(totalCurrent)}</td><td>${fmt(totalNew)}</td>
+      <td class="savings-cell">${fmt(totalSavings)}</td>
+      <td>${fmtPct(overallPct)}</td><td class="bar-cell"></td>
+    </tr>`;
+
+  const peakIdx = monthlySavings.indexOf(Math.max(...monthlySavings));
+  document.getElementById('kpiGrid').innerHTML = `
+    <div class="kpi-card highlight">
+      <div class="kpi-label">Annual Savings (12-Mo Rate)</div>
+      <div class="kpi-value">${fmt(totalSavings,0)}</div>
+      <div class="kpi-sub">${fmtPct(overallPct)} reduction in energy costs</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Monthly Average</div>
+      <div class="kpi-value">${fmt(totalSavings/12,0)}</div>
+      <div class="kpi-sub">Per month avg savings</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Usage</div>
+      <div class="kpi-value">${fmtNum(annualUsage)}</div>
+      <div class="kpi-sub">kWh annual consumption</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Rate Reduction (12-Mo)</div>
+      <div class="kpi-value">${fmtPct(cr>0?(diff/cr)*100:0)}</div>
+      <div class="kpi-sub">$${diff.toFixed(4)}/kWh price drop</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Peak Savings Month</div>
+      <div class="kpi-value">${MONTHS[peakIdx].slice(0,3).toUpperCase()}</div>
+      <div class="kpi-sub">${fmt(monthlySavings[peakIdx])} in ${MONTHS[peakIdx]}</div>
+    </div>`;
+
+  const chartBars = document.getElementById('chartBars');
+  chartBars.innerHTML = '';
+  const nonZero = monthlySavings.filter(s => s > 0);
+  if (nonZero.length > 0) {
+    const maxSav = Math.max(...monthlySavings);
+    const minSav = Math.min(...nonZero);
+    const baseline = minSav * 0.8;
+    const range = Math.max(maxSav - baseline, 1);
+    monthlySavings.forEach((s,i) => {
+      const pct = s > 0 ? 15 + ((s - baseline) / range) * 82 : 2;
+      chartBars.innerHTML += `
+        <div class="chart-col">
+          <div class="chart-amount">${s>0?'$'+Math.round(s).toLocaleString():''}</div>
+          <div class="chart-bar" style="height:${pct}%" title="${MONTHS[i]}: ${fmt(s)}"></div>
+          <div class="chart-month">${MONTHS_SHORT[i]}</div>
+        </div>`;
+    });
+  }
+
+  const terms = [
+    { months: 12,  rate: termRates[12]  },
+    { months: 24,  rate: termRates[24]  },
+    { months: 36,  rate: termRates[36]  },
+    { months: 48,  rate: termRates[48]  },
+    { months: 60,  rate: termRates[60]  },
+  ];
+
+  const mygrid=document.getElementById('multiyearGrid'), mytable=document.getElementById('multiyearTable');
+  mygrid.innerHTML=''; mytable.innerHTML='';
+
+  terms.forEach(({ months, rate }, i) => {
+    const years = months / 12;
+    const termDiff = cr - rate;
+    const annualSav = annualUsage * termDiff;
+    const annualCur = annualUsage * cr;
+    const annualNew = annualUsage * rate;
+    const cumCur = annualCur * years;
+    const cumNew = annualNew * years;
+    const cumSav = annualSav * years;
+    const pct = cumCur > 0 ? (cumSav / cumCur) * 100 : 0;
+    const isFirst = i === 0;
+    mygrid.innerHTML += `
+      <div class="year-card ${isFirst?'active':''}">
+        <div class="year-card-label">${months}-Month Term</div>
+        <div class="year-card-savings">${fmt(cumSav,0)}</div>
+        <div class="year-card-pct">${fmtPct(pct)} savings · $${rate.toFixed(4)}/kWh</div>
+      </div>`;
+    mytable.innerHTML += `
+      <tr>
+        <td style="text-align:left;font-family:'DM Sans',sans-serif;color:var(--text-muted)">${months}-Month Term</td>
+        <td>${months}</td><td>${fmt(cumCur)}</td><td>${fmt(cumNew)}</td>
+        <td class="savings-cell">${fmt(cumSav)}</td><td>${fmtPct(pct)}</td>
+      </tr>`;
+  });
+
+  const banner = document.getElementById('combinedBanner');
+  if (esiids.length > 1) {
+    banner.style.display = 'flex';
+    document.getElementById('combinedCount').textContent = esiids.length;
+    document.getElementById('combinedKwh').textContent = fmtNum(annualUsage);
+    document.getElementById('combinedSavings').textContent = fmt(totalSavings, 0);
+    document.getElementById('combined5yr').textContent = fmt(totalSavings * 5, 0);
+  } else {
+    banner.style.display = 'none';
+  }
+
+  const rateRedPct = cr > 0 ? (diff/cr)*100 : 0;
+  const rrVal = document.getElementById('printRateReductionVal');
+  const rrSub = document.getElementById('printRateReductionSub');
+  if (rrVal) rrVal.textContent = fmtPct(rateRedPct);
+  if (rrSub) rrSub.textContent = '$' + diff.toFixed(4) + '/kWh price drop';
+
+  document.getElementById('genDate').textContent = new Date().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+}
+
+function clearAll() {
+  if (!confirm('Clear all ESIIDs and usage data?')) return;
+  esiids = [createEsiid('ESIID 1')];
+  activeTab = 0;
+  renderAll();
+  calculate();
+}
+
+function saveSession() {
+  const data = {
+    prospectName: document.getElementById('prospectName').value,
+    currentRate: document.getElementById('currentRate').value,
+    rate12: document.getElementById('rate12').value,
+    rate24: document.getElementById('rate24').value,
+    rate36: document.getElementById('rate36').value,
+    rate48: document.getElementById('rate48').value,
+    rate60: document.getElementById('rate60').value,
+    esiids: esiids
+  };
+  localStorage.setItem('energySaverSession', JSON.stringify(data));
+  const btn = document.querySelector('[onclick="saveSession()"]');
+  const orig = btn.textContent;
+  btn.textContent = '✓ Saved!';
+  btn.style.color = 'var(--gold)';
+  setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000);
+}
+
+function loadSession() {
+  const raw = localStorage.getItem('energySaverSession');
+  if (!raw) return;
+  const data = JSON.parse(raw);
+  document.getElementById('prospectName').value = data.prospectName || '';
+  document.getElementById('currentRate').value = data.currentRate || '';
+  document.getElementById('rate12').value = data.rate12 || '';
+  document.getElementById('rate24').value = data.rate24 || '';
+  document.getElementById('rate36').value = data.rate36 || '';
+  document.getElementById('rate48').value = data.rate48 || '';
+  document.getElementById('rate60').value = data.rate60 || '';
+  esiids = data.esiids || [createEsiid('ESIID 1')];
+  activeTab = 0;
+  renderAll();
+  calculate();
+}
+
+function checkSavedSession() {
+  if (localStorage.getItem('energySaverSession')) {
+    document.getElementById('loadBtn').style.display = '';
+  }
+}
+
+['currentRate','rate12','rate24','rate36','rate48','rate60'].forEach(id => {
+  document.getElementById(id).addEventListener('input', calculate);
+});
+
+function downloadPDF() {
+  const nameEl = document.getElementById('prospectName');
+  const name = nameEl.value.trim();
+  if (!name) {
+    nameEl.style.borderColor = '#ef4444';
+    nameEl.style.boxShadow = '0 0 0 3px rgba(239,68,68,0.2)';
+    nameEl.focus();
+    nameEl.placeholder = 'Required before downloading...';
+    setTimeout(() => {
+      nameEl.style.borderColor = '';
+      nameEl.style.boxShadow = '';
+      nameEl.placeholder = 'Enter Business Name';
+    }, 3000);
+    return;
+  }
+  const orig = document.title;
+  document.title = `Energy Savings Analysis - ${name}`;
+  document.getElementById('printName').textContent = name;
+  document.getElementById('printDate').textContent = 'Generated: ' + new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+  const cr = parseFloat(document.getElementById('currentRate').value) || 0;
+  document.getElementById('printCurrentRate').textContent = '$' + cr.toFixed(4);
+  document.getElementById('printRate12').textContent = '$' + (parseFloat(document.getElementById('rate12').value)||0).toFixed(4);
+  document.getElementById('printRate24').textContent = '$' + (parseFloat(document.getElementById('rate24').value)||0).toFixed(4);
+  document.getElementById('printRate36').textContent = '$' + (parseFloat(document.getElementById('rate36').value)||0).toFixed(4);
+  document.getElementById('printRate48').textContent = '$' + (parseFloat(document.getElementById('rate48').value)||0).toFixed(4);
+  document.getElementById('printRate60').textContent = '$' + (parseFloat(document.getElementById('rate60').value)||0).toFixed(4);
+  window.print();
+  setTimeout(() => { document.title = orig; }, 1000);
+}
+
+esiids.push(createEsiid('ESIID 1'));
+renderAll();
+calculate();
+checkSavedSession();
+</script>
+</body>
+</html>
